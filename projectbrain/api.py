@@ -154,7 +154,7 @@ async def search(query: str = Query(...), mode: str = "GRAPH_COMPLETION", after:
     search_total += 1
     if len(results) > 0:
         search_with_results += 1
-    return {"results": [{"text": getattr(r, "text", str(r)), "score": getattr(r, "score", None)} for r in results], "mode": mode}
+    return {"results": [{"text": getattr(r, "text", str(r)), "score": getattr(r, "score", None), "node_id": getattr(r, "id", None)} for r in results], "mode": mode}
 
 @app.get("/api/search/modes")
 async def search_modes():

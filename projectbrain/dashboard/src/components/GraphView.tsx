@@ -273,11 +273,15 @@ export default function GraphView() {
               ) : (
                 <div className="divide-y divide-gray-800">
                   {searchResults.map((r, i) => (
-                    <div key={i} className="p-3 text-sm text-gray-300 hover:bg-gray-800">
+                    <div key={i} className="p-3 text-sm text-gray-300 hover:bg-gray-800 cursor-pointer" onClick={() => {
+                      const node = (graphData.nodes as any[]).find(n => n.id === r.node_id);
+                      if (node) setSelectedNode(node);
+                    }}>
                       <p className="line-clamp-3">{r.text}</p>
                       {r.score != null && (
                         <span className="text-xs text-gray-600 mt-1 block">score: {r.score.toFixed(3)}</span>
                       )}
+                      {r.node_id && <span className="text-[10px] text-gray-700 mt-0.5 block truncate">{r.node_id}</span>}
                     </div>
                   ))}
                 </div>
