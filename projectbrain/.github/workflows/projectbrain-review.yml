@@ -1,0 +1,31 @@
+name: ProjectBrain Memory Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  memory_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install cognee litellm
+
+      - name: Generate PR Diff
+        run: |
+          git diff origin/main...HEAD > pr_changes.diff
+
+      - name: Run Reviewer Agent
+        run: |
+          python reviewer_agent.py pr_changes.diff
