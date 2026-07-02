@@ -200,6 +200,8 @@ async def forget_preview(body: ForgetPreview):
 
 @app.post("/api/forget/confirm")
 async def forget_confirm(body: ForgetConfirm):
+    if os.environ.get("COGNEE_FORGET_ENABLED", "false") != "true":
+        return {"error": "Forget is disabled. Set COGNEE_FORGET_ENABLED=true to enable."}
     global last_preview
     if time.time() - last_preview["time"] > 60:
         return {"error": "Preview expired. Call /api/forget/preview first."}

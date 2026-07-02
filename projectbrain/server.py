@@ -1,4 +1,5 @@
 import os
+from uuid import UUID
 os.environ.setdefault("ENABLE_BACKEND_ACCESS_CONTROL", "false")
 os.environ.setdefault("CACHING", "true")
 DATASET = os.getenv("COGNEE_DATASET", "paylink")
@@ -52,9 +53,21 @@ async def remember_snapshot(text: str, snapshot_id: str | None = None, tags: lis
     return f"Remembered snapshot{f' {snapshot_id}' if snapshot_id else ''}."
 
 @mcp.tool()
-async def forget(node_id: str, cascade: bool = True) -> str:
-    await cognee.forget(dataset=DATASET, memory_only=not cascade)
-    return f"Forgot memory for dataset {DATASET}. Cascade: {cascade}."
+async def forget(node_id: str = "", cascade: bool = True) -> str:
+    if os.environ.get("COGNEE_FORGET_ENABLED", "false") != "true":
+        return "Forget is disabled. Set COGNEE_FORGET_ENABLED=true to enable."
+    kwargs = {}
+    if node_id and node_id.strip():
+        try:
+            kwargs["data_id"] = UUID(node_id.strip())
+        except ValueError:
+            return f"Invalid node_id: {node_id}. Must be a valid UUID."
+    else:
+        kwargs["dataset"] = DATASET
+    if not cascade:
+        kwargs["memory_only"] = True
+    await cognee.forget(**kwargs)
+    return f"Forgot {f'node {node_id}' if node_id else f'dataset {DATASET}'}. Cascade: {cascade}."
 
 if __name__ == "__main__":
     mcp.run()
