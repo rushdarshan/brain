@@ -190,7 +190,6 @@ export default function GraphView() {
           <span>{metrics.nodes} nodes</span>
           <span>{metrics.edges} edges</span>
           <span>recall: {(metrics.recall_precision * 100).toFixed(0)}%</span>
-          <span>review: {(metrics.review_accuracy * 100).toFixed(0)}%</span>
           {metrics.search_latency_ms != null && <span>{metrics.search_latency_ms}ms latency</span>}
           {metrics.memory_composition && (Object.entries(metrics.memory_composition) as [string, number][]).map(([g, c]) => (
             <span key={g} className="capitalize">{g}: {c}</span>
