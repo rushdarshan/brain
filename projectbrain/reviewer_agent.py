@@ -17,8 +17,8 @@ async def review_pr(code_snippet: str):
 
     if keyword:
         print(f"Detected '{keyword}' usage. Querying organizational memory with GRAPH_COMPLETION_COT...")
-        results = await cognee.search(query_text=f"What decisions involved {keyword}? Was it superseded?", query_type=SearchType.GRAPH_COMPLETION_COT, datasets=[DATASET])
-        result_text = str(results)
+        results = await cognee.recall(query_text=f"What decisions involved {keyword}? Was it superseded?", query_type=SearchType.GRAPH_COMPLETION_COT, datasets=[DATASET])
+        result_text = " ".join(r.text for r in results if r.text)
 
         if "supersede" in result_text.lower() or "postgres" in result_text.lower():
             print(f"\n[REJECTED] Memory indicates {keyword} was superseded. Graph path: {result_text[:500]}")

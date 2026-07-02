@@ -48,10 +48,7 @@ async def seed():
         texts.append(text)
 
     print(f"Ingesting {len(texts)} decisions into dataset 'paylink'...")
-    await cognee.add(texts, dataset_name=DATASET)
-
-    print("Cognifying (building knowledge graph)...")
-    await cognee.cognify(datasets=[DATASET])
+    await cognee.remember(texts, dataset_name=DATASET)
 
     print("Seed complete. Run `python projectbrain/api.py` to start the dashboard backend.")
 

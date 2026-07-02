@@ -1,4 +1,4 @@
-import asyncio, json, os, uuid, time
+import asyncio, json, os, time
 from collections import deque
 from fastapi import FastAPI, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,12 +48,9 @@ async def load_graph_from_cognee():
     return {"nodes": graph_nodes, "links": graph_links}
 
 STATE: dict = {"nodes": [], "links": []}
-last_cognify_time: str | None = None
 search_latencies: deque = deque(maxlen=10)
 search_total: int = 0
 search_with_results: int = 0
-review_total: int = 0
-review_approved: int = 0
 
 async def notify_clients():
     data = json.dumps(STATE)
@@ -104,11 +101,7 @@ async def webhook_remember(event: MemoryEvent):
     if event.supersedes:
         text += f"\nSupersedes: {event.supersedes}"
 
-    global last_cognify_time
-    await cognee.add(text, dataset_name=DATASET)
-    await cognee.cognify(datasets=[DATASET])
-    last_cognify_time = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-
+    await cognee.remember(text, dataset_name=DATASET)
     global STATE
     STATE = await load_graph_from_cognee()
     await notify_clients()
@@ -121,24 +114,12 @@ async def notify():
     await notify_clients()
     return {"status": "notified"}
 
-@app.post("/api/track/review")
-async def track_review():
-    global review_total, review_approved
-    review_total += 1
-    review_approved += 1
-    return {"status": "tracked"}
-
 class SessionEvent(BaseModel):
     text: str
 
-session_ids: set[str] = set()
-
 @app.post("/api/remember/session")
 async def remember_session(event: SessionEvent):
-    global last_cognify_time
-    await cognee.add(event.text, dataset_name=SESSION_DATASET)
-    await cognee.cognify(datasets=[SESSION_DATASET])
-    last_cognify_time = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    await cognee.remember(event.text, dataset_name=SESSION_DATASET)
     global STATE
     STATE = await load_graph_from_cognee()
     await notify_clients()
@@ -146,10 +127,7 @@ async def remember_session(event: SessionEvent):
 
 @app.post("/api/remember/promote")
 async def promote_session(event: SessionEvent):
-    global last_cognify_time
-    await cognee.add(event.text, dataset_name=DATASET)
-    await cognee.cognify(datasets=[DATASET])
-    last_cognify_time = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    await cognee.remember(event.text, dataset_name=DATASET)
     global STATE
     STATE = await load_graph_from_cognee()
     await notify_clients()
@@ -160,20 +138,23 @@ async def list_sessions():
     return {"session_dataset": SESSION_DATASET, "permanent_dataset": DATASET}
 
 @app.get("/api/search")
-async def search(query: str = Query(...), mode: str = "GRAPH_COMPLETION"):
+async def search(query: str = Query(...), mode: str = "GRAPH_COMPLETION", after: Optional[str] = None, before: Optional[str] = None):
     try:
         st = SearchType(mode)
     except ValueError:
         st = SearchType.GRAPH_COMPLETION
+    kwargs = {"query_text": query, "query_type": st, "datasets": [DATASET]}
+    if after or before:
+        kwargs["datetime_filter"] = {k: v for k, v in {"after": after, "before": before}.items() if v}
     t0 = time.perf_counter()
-    results = await cognee.search(query_text=query, query_type=st, datasets=[DATASET])
+    results = await cognee.recall(**kwargs)
     latency = time.perf_counter() - t0
     search_latencies.append(latency)
     global search_total, search_with_results
     search_total += 1
     if len(results) > 0:
         search_with_results += 1
-    return {"results": [{"text": str(r), "score": getattr(r, "score", None)} for r in results], "mode": mode}
+    return {"results": [{"text": getattr(r, "text", str(r)), "score": getattr(r, "score", None)} for r in results], "mode": mode}
 
 @app.get("/api/search/modes")
 async def search_modes():
@@ -189,21 +170,12 @@ async def metrics():
         groups[g] = groups.get(g, 0) + 1
     avg_latency = round(sum(search_latencies) / len(search_latencies), 3) if search_latencies else None
     recall_precision = round(search_with_results / search_total, 2) if search_total > 0 else None
-    review_accuracy = round(review_approved / review_total, 2) if review_total > 0 else None
-    staleness = None
-    if last_cognify_time:
-        from datetime import datetime, timezone
-        last = datetime.fromisoformat(last_cognify_time.replace("Z", "+00:00"))
-        staleness = round((datetime.now(timezone.utc) - last).total_seconds() / 3600, 2)
     return {
         "nodes": nc,
         "edges": ec,
         "memory_composition": groups,
         "search_latency_ms": avg_latency,
-        "last_cognify": last_cognify_time,
         "recall_precision": recall_precision,
-        "review_accuracy": review_accuracy,
-        "memory_staleness": staleness,
     }
 
 class ForgetPreview(BaseModel):
@@ -216,11 +188,11 @@ last_preview: dict = {"time": 0.0, "query": ""}
 
 @app.post("/api/forget/preview")
 async def forget_preview(body: ForgetPreview):
-    results = await cognee.search(query_text=body.query, datasets=[DATASET])
+    results = await cognee.recall(query_text=body.query, datasets=[DATASET])
     matches = []
     for r in results:
-        text = str(r)
-        node_id = getattr(r, "id", text[:40])
+        text = getattr(r, "text", str(r))
+        node_id = getattr(r, "dataset_id", text[:40])
         matches.append({"id": node_id, "text": text[:200]})
     global last_preview
     last_preview = {"time": time.time(), "query": body.query}
