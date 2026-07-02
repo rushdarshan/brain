@@ -19,13 +19,18 @@ jobs:
           python-version: '3.11'
 
       - name: Install Dependencies
+        env:
+          COGNEE_API_KEY: ${{ secrets.COGNEE_API_KEY }}
         run: |
-          pip install cognee litellm
+          pip install git+https://github.com/topoteretes/cognee litellm
 
       - name: Generate PR Diff
         run: |
-          git diff origin/main...HEAD > pr_changes.diff
+          git diff origin/master...HEAD > pr_changes.diff
 
       - name: Run Reviewer Agent
+        env:
+          COGNEE_API_KEY: ${{ secrets.COGNEE_API_KEY }}
+          COGNEE_API_URL: ${{ secrets.COGNEE_API_URL }}
         run: |
           python reviewer_agent.py pr_changes.diff
