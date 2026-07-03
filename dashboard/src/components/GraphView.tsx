@@ -5,7 +5,8 @@ import dynamic from 'next/dynamic';
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
-const API = 'http://127.0.0.1:8000';
+// Use relative path in production so the browser connects to the Railway domain, not localhost.
+const API = typeof window !== 'undefined' && window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8000' : '';
 
 const GROUP_COLORS: Record<string, string> = {
   decision: '#22c55e',
