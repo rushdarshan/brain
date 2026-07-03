@@ -60,21 +60,31 @@ export default function GraphView() {
     fetchMetrics();
   }, [fetchMetrics]);
 
+  const doSearch = useCallback(async (q: string, mode: string) => {
+    if (!q.trim()) { setSearchResults([]); return; }
+    setIsSearching(true);
+    try {
+      const r = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}&mode=${mode}`);
+      const d = await r.json();
+      setSearchResults(d.results);
+    } catch {
+      setSearchResults([]);
+    }
+    setIsSearching(false);
+  }, []);
+
+  const modeRef = useRef(searchMode);
+  modeRef.current = searchMode;
+
   useEffect(() => {
     if (!searchQuery.trim()) { setSearchResults([]); return; }
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const r = await fetch(`${API}/api/search?q=${encodeURIComponent(searchQuery)}&mode=${searchMode}`);
-        const d = await r.json();
-        setSearchResults(d.results);
-      } catch {
-        setSearchResults([]);
-      }
-      setIsSearching(false);
-    }, 300);
+    const timer = setTimeout(() => doSearch(searchQuery, modeRef.current), 300);
     return () => clearTimeout(timer);
-  }, [searchQuery, searchMode]);
+  }, [searchQuery, doSearch]);
+
+  useEffect(() => {
+    if (searchQuery.trim()) doSearch(searchQuery, searchMode);
+  }, [searchMode]);
 
   const edgeTypes = useMemo(() => {
     const types = new Set<string>();
