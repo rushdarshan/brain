@@ -3,7 +3,6 @@ from collections import deque
 from fastapi import FastAPI, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 
@@ -65,7 +64,17 @@ async def startup():
     print(f"Loaded {len(STATE['nodes'])} nodes, {len(STATE['links'])} links from Cognee")
     static_dir = os.path.join(os.path.dirname(__file__), "dashboard", "out")
     if os.path.isdir(static_dir):
-        app.mount("/", StaticFiles(directory=static_dir, html=True), name="dashboard")
+        from fastapi.responses import FileResponse
+        @app.get("/", include_in_schema=False)
+        async def serve_root():
+            return FileResponse(os.path.join(static_dir, "index.html"))
+        @app.get("/{path:path}", include_in_schema=False)
+        async def serve_spa(path: str):
+            file_path = os.path.join(static_dir, path or "index.html")
+            resolved = os.path.abspath(file_path)
+            if resolved.startswith(os.path.abspath(static_dir)) and os.path.isfile(resolved):
+                return FileResponse(resolved)
+            return FileResponse(os.path.join(static_dir, "index.html"))
         print(f"Serving static dashboard from {static_dir}")
 
 @app.get("/api/graph")
