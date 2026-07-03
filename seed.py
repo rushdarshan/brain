@@ -50,7 +50,7 @@ async def seed():
     print(f"Ingesting {len(texts)} decisions into dataset 'paylink'...")
     await cognee.remember(texts, dataset_name=DATASET)
 
-    print("Seed complete. Run `python projectbrain/api.py` to start the dashboard backend.")
+    print("Seed complete. Run `python api.py` to start the dashboard backend.")
 
 if __name__ == "__main__":
     asyncio.run(seed())
