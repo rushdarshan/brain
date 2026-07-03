@@ -21,10 +21,14 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, 
 clients: list[asyncio.Queue] = []
 
 async def load_graph_from_cognee():
-    """Load current graph from Cognee's relational memory tables."""
+    """Load current graph from Cognee's graph engine directly (Cloud-aware)."""
     try:
-        nodes, edges = await cognee.get_memory_provenance_graph(include_memory=True)
-    except Exception:
+        from cognee.infrastructure.databases.graph.get_graph_engine import get_graph_engine
+        engine = await get_graph_engine()
+        # Direct graph engine call replaces get_memory_provenance_graph for cloud compatibility
+        nodes, edges = await engine.get_graph_data()
+    except Exception as e:
+        print(f"Error loading graph: {e}")
         return {"nodes": [], "links": []}
 
     graph_nodes = []
