@@ -20,54 +20,27 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, 
 
 clients: list[asyncio.Queue] = []
 
-async def load_graph_from_cognee():
-    """Load current graph from Cognee's graph engine directly (Cloud-aware)."""
-    try:
-        from cognee.infrastructure.databases.graph.get_graph_engine import get_graph_engine
-        engine = await get_graph_engine()
-        # Direct graph engine call replaces get_memory_provenance_graph for cloud compatibility
-        nodes, edges = await engine.get_graph_data()
-    except Exception as e:
-        print(f"Error loading graph: {e}")
-        return {"nodes": [], "links": []}
-
-    graph_nodes = []
-    for n in nodes:
-        # Handle both Node objects (local) and raw tuples (cloud)
-        if isinstance(n, tuple):
-            n_id, props = n[0], (n[1] if len(n) > 1 else {})
-        else:
-            n_id = n.id
-            props = n.properties or {}
-            
-        name = props.get("name", n_id.split(":")[-1] if ":" in n_id else n_id)
-        ntype = props.get("type", "Node")
-        group_map = {"Decision": "decision", "File": "file", "Incident": "incident", "Metric": "metric", "TextDocument": "file"}
-        group = "decision"
-        for k, v in group_map.items():
-            if k.lower() in ntype.lower():
-                group = v
-                break
-        graph_nodes.append({"id": n_id, "name": name, "group": group, "val": 20})
-
-    graph_links = []
-    for e in edges:
-        # Handle both Edge objects and raw tuples
-        if isinstance(e, tuple):
-            source = e[0]
-            target = e[1]
-            relation = e[2] if len(e) > 2 else "RELATED_TO"
-            if isinstance(relation, dict):
-                relation = relation.get("relation_name", relation.get("type", "RELATED_TO"))
-        else:
-            source = e.source
-            target = e.target
-            relation = e.relation
-        graph_links.append({"source": source, "target": target, "name": relation})
-
-    return {"nodes": graph_nodes, "links": graph_links}
-
 STATE: dict = {"nodes": [], "links": []}
+
+async def load_graph_from_cognee():
+    """Build graph state from seed items (Cognee Cloud has no local node enumerator)."""
+    from seed import seed_items
+    nodes, links, file_ids, node_ids = [], [], {}, {}
+    for item in seed_items:
+        nid = f"decision:{item['title'].lower().replace(' ', '-')}"
+        node_ids[item['title']] = nid
+        group = "incident" if "incident" in item.get("tags", []) else "decision"
+        nodes.append({"id": nid, "name": item["title"], "group": group, "val": 20})
+        for f in item.get("files", []):
+            fid = f"file:{f.lower().replace('/', '-')}"
+            if fid not in file_ids:
+                file_ids[fid] = True
+                nodes.append({"id": fid, "name": f, "group": "file", "val": 10})
+            links.append({"source": nid, "target": fid, "name": "LINKS_TO"})
+    for item in seed_items:
+        if item.get("supersedes") and item["supersedes"] in node_ids:
+            links.append({"source": node_ids[item["supersedes"]], "target": node_ids[item["title"]], "name": "SUPERSEDES"})
+    return {"nodes": nodes, "links": links}
 search_latencies: deque = deque(maxlen=10)
 search_total: int = 0
 search_with_results: int = 0
