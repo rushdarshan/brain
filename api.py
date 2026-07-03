@@ -158,7 +158,9 @@ async def search(q: str = Query(...), mode: str = "GRAPH_COMPLETION", after: Opt
     if len(results) > 0:
         search_with_results += 1
     def rget(r, key, default=""):
-        return r[key] if isinstance(r, dict) else getattr(r, key, default)
+        if isinstance(r, dict):
+            return r.get(key, r.get("dataset_id" if key == "id" else key, default))
+        return getattr(r, key, default)
     return {"results": [{"text": rget(r, "text", ""), "score": rget(r, "score", None), "node_id": rget(r, "id", None)} for r in results], "mode": mode}
 
 @app.get("/api/search/modes")
