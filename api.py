@@ -216,6 +216,21 @@ async def forget_confirm(body: ForgetConfirm):
     await notify_clients()
     return {"status": "forgotten", "dataset": DATASET}
 
+@app.post("/api/seed")
+async def seed_graph():
+    global STATE
+    from seed import seed_items
+    texts = []
+    for item in seed_items:
+        text = f"Decision: {item['title']}\nRationale: {item['rationale']}\nImpacted Files: {', '.join(item['files'])}\nTags: {', '.join(item['tags'])}\nWeek: {item['week']}"
+        if item["supersedes"]:
+            text += f"\nSupersedes: {item['supersedes']}"
+        texts.append(text)
+    await cognee.remember(texts, dataset_name=DATASET)
+    STATE = await load_graph_from_cognee()
+    await notify_clients()
+    return {"status": "seeded", "count": len(texts), "dataset": DATASET}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
