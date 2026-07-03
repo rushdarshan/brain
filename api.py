@@ -141,12 +141,12 @@ async def list_sessions():
     return {"session_dataset": SESSION_DATASET, "permanent_dataset": DATASET}
 
 @app.get("/api/search")
-async def search(query: str = Query(...), mode: str = "GRAPH_COMPLETION", after: Optional[str] = None, before: Optional[str] = None):
+async def search(q: str = Query(...), mode: str = "GRAPH_COMPLETION", after: Optional[str] = None, before: Optional[str] = None):
     try:
         st = SearchType(mode)
     except ValueError:
         st = SearchType.GRAPH_COMPLETION
-    kwargs = {"query_text": query, "query_type": st, "datasets": [DATASET]}
+    kwargs = {"query_text": q, "query_type": st, "datasets": [DATASET]}
     if after or before:
         kwargs["datetime_filter"] = {k: v for k, v in {"after": after, "before": before}.items() if v}
     t0 = time.perf_counter()
@@ -157,7 +157,9 @@ async def search(query: str = Query(...), mode: str = "GRAPH_COMPLETION", after:
     search_total += 1
     if len(results) > 0:
         search_with_results += 1
-    return {"results": [{"text": getattr(r, "text", str(r)), "score": getattr(r, "score", None), "node_id": getattr(r, "id", None)} for r in results], "mode": mode}
+    def rget(r, key, default=""):
+        return r[key] if isinstance(r, dict) else getattr(r, key, default)
+    return {"results": [{"text": rget(r, "text", ""), "score": rget(r, "score", None), "node_id": rget(r, "id", None)} for r in results], "mode": mode}
 
 @app.get("/api/search/modes")
 async def search_modes():
@@ -193,9 +195,11 @@ last_preview: dict = {"time": 0.0, "query": ""}
 async def forget_preview(body: ForgetPreview):
     results = await cognee.recall(query_text=body.query, datasets=[DATASET])
     matches = []
+    def rget(r, key, default=""):
+        return r[key] if isinstance(r, dict) else getattr(r, key, default)
     for r in results:
-        text = getattr(r, "text", str(r))
-        node_id = getattr(r, "dataset_id", text[:40])
+        text = rget(r, "text", str(r))
+        node_id = rget(r, "dataset_id", text[:40])
         matches.append({"id": node_id, "text": text[:200]})
     global last_preview
     last_preview = {"time": time.time(), "query": body.query}

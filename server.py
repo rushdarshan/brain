@@ -1,22 +1,43 @@
 import os
 from uuid import UUID
+from contextlib import asynccontextmanager
 os.environ.setdefault("ENABLE_BACKEND_ACCESS_CONTROL", "false")
 os.environ.setdefault("CACHING", "true")
 DATASET = os.getenv("COGNEE_DATASET", "paylink")
 SESSION_DATASET = f"{DATASET}-session"
 
+from cognee_init import init_cognee
 import cognee
 from cognee import SearchType
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("ProjectBrain")
+@asynccontextmanager
+async def cognee_lifespan(app):
+    await init_cognee()
+    yield
+
+mcp = FastMCP("ProjectBrain", lifespan=cognee_lifespan)
+
+from cognee.infrastructure.engine import DataPoint
+
+class Decision(DataPoint):
+    title: str
+    rationale: str
+    files: list[str]
+    tags: list[str]
+    supersedes: str | None = None
 
 @mcp.tool()
 async def remember_decision(title: str, rationale: str, files: list[str], tags: list[str], supersedes: str | None = None) -> str:
-    text = f"Decision: {title}\nRationale: {rationale}\nImpacted Files: {', '.join(files)}\nTags: {', '.join(tags)}"
-    if supersedes:
-        text += f"\nSupersedes: {supersedes}"
-    await cognee.remember(text, dataset_name=DATASET)
+    decision = Decision(
+        title=title,
+        rationale=rationale,
+        files=files,
+        tags=tags,
+        supersedes=supersedes,
+    )
+    # Using the DataPoint structure directly instead of raw text strings
+    await cognee.remember(decision, dataset_name=DATASET)
     return f"Remembered decision: {title}"
 
 @mcp.tool()
@@ -30,6 +51,8 @@ async def recall_context(query: str, mode: str = "GRAPH_COMPLETION", session_id:
     if session_id:
         kwargs["session_id"] = session_id
     results = await cognee.recall(**kwargs)
+    if results and isinstance(results[0], dict):
+        return " ".join(r.get("text", "") for r in results if r.get("text"))
     return str(results)
 
 @mcp.tool()

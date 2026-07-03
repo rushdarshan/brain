@@ -4,3 +4,4 @@ cognee @ git+https://github.com/topoteretes/cognee
 httpx==0.28.1
 python-dotenv==1.2.2
 sse-starlette==3.4.5
+fastembed>=0.4.0,<=0.8.0

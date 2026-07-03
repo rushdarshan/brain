@@ -3,10 +3,12 @@ os.environ.setdefault("ENABLE_BACKEND_ACCESS_CONTROL", "false")
 os.environ.setdefault("CACHING", "true")
 DATASET = os.getenv("COGNEE_DATASET", "paylink")
 
+from cognee_init import init_cognee
 import cognee
 from cognee import SearchType
 
 async def review_pr(code_snippet: str):
+    await init_cognee()
     print(f"REVIEWER AGENT: Analyzing PR snippet:\n---\n{code_snippet}\n---\n")
 
     keyword = None
@@ -18,7 +20,7 @@ async def review_pr(code_snippet: str):
     if keyword:
         print(f"Detected '{keyword}' usage. Querying organizational memory with GRAPH_COMPLETION_COT...")
         results = await cognee.recall(query_text=f"What decisions involved {keyword}? Was it superseded?", query_type=SearchType.GRAPH_COMPLETION_COT, datasets=[DATASET])
-        result_text = " ".join(r.text for r in results if r.text)
+        result_text = " ".join(r["text"] if isinstance(r, dict) else r.text for r in results if (r["text"] if isinstance(r, dict) else r.text))
 
         if "supersede" in result_text.lower() or "postgres" in result_text.lower():
             print(f"\n[REJECTED] Memory indicates {keyword} was superseded. Graph path: {result_text[:500]}")
