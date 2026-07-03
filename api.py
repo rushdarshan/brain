@@ -22,11 +22,12 @@ clients: list[asyncio.Queue] = []
 
 STATE: dict = {"nodes": [], "links": []}
 
-async def load_graph_from_cognee():
+async def load_graph_from_cognee(week: int | None = None):
     """Build graph state from seed items (Cognee Cloud has no local node enumerator)."""
     from seed import seed_items
+    items = [i for i in seed_items if week is None or i["week"] <= week]
     nodes, links, file_ids, node_ids = [], [], {}, {}
-    for item in seed_items:
+    for item in items:
         nid = f"decision:{item['title'].lower().replace(' ', '-')}"
         node_ids[item['title']] = nid
         group = "incident" if "incident" in item.get("tags", []) else "decision"
@@ -37,13 +38,14 @@ async def load_graph_from_cognee():
                 file_ids[fid] = True
                 nodes.append({"id": fid, "name": f, "group": "file", "val": 10})
             links.append({"source": nid, "target": fid, "name": "LINKS_TO"})
-    for item in seed_items:
+    for item in items:
         if item.get("supersedes") and item["supersedes"] in node_ids:
             links.append({"source": node_ids[item["supersedes"]], "target": node_ids[item["title"]], "name": "SUPERSEDES"})
     return {"nodes": nodes, "links": links}
 search_latencies: deque = deque(maxlen=10)
 search_total: int = 0
 search_with_results: int = 0
+metrics_history: deque = deque(maxlen=10)
 
 async def notify_clients():
     data = json.dumps(STATE)
@@ -72,8 +74,16 @@ async def startup():
         print(f"Serving static dashboard from {static_dir}")
 
 @app.get("/api/graph")
-async def get_graph():
+async def get_graph(week: int | None = Query(None)):
+    if week is not None:
+        return await load_graph_from_cognee(week=week)
     return STATE
+
+@app.get("/api/graph/weeks")
+async def graph_weeks():
+    from seed import seed_items
+    weeks = sorted(set(i["week"] for i in seed_items))
+    return {"weeks": weeks, "current": max(weeks)}
 
 @app.get("/api/stream")
 async def sse_stream(request: Request):
@@ -184,6 +194,17 @@ async def metrics():
         "search_latency_ms": avg_latency,
         "recall_precision": recall_precision,
     }
+
+@app.post("/api/improve")
+async def improve():
+    await cognee.improve(dataset=DATASET, build_truth_subspace=True)
+    snapshot = await metrics()
+    metrics_history.append({"t": time.time(), "metrics": snapshot})
+    return snapshot
+
+@app.get("/api/metrics/history")
+async def metrics_history_endpoint():
+    return list(metrics_history)
 
 class ForgetPreview(BaseModel):
     query: str

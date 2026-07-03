@@ -28,6 +28,20 @@ export default function GraphView() {
   const [metrics, setMetrics] = useState<any>(null);
   const [edgeFilter, setEdgeFilter] = useState('ALL');
   const [selectedNode, setSelectedNode] = useState<any>(null);
+  const [week, setWeek] = useState<number | null>(null);
+  const [weekOptions, setWeekOptions] = useState<{weeks: number[], current: number} | null>(null);
+  const [improveLoading, setImproveLoading] = useState(false);
+  const [improveDelta, setImproveDelta] = useState<string | null>(null);
+  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [activePanel, setActivePanel] = useState<'add' | 'activity' | 'metrics'>('metrics');
+  const [addTitle, setAddTitle] = useState('');
+  const [addRationale, setAddRationale] = useState('');
+  const [addFiles, setAddFiles] = useState('');
+  const [addTags, setAddTags] = useState('');
+  const [addSupersedes, setAddSupersedes] = useState('');
+  const [addLoading, setAddLoading] = useState(false);
+  const [addMsg, setAddMsg] = useState<string | null>(null);
+  const [activityLog, setActivityLog] = useState<{type: string; text: string; time: number}[]>([]);
 
   useEffect(() => {
     const es = new EventSource(`${API}/api/stream`);
@@ -60,6 +74,82 @@ export default function GraphView() {
     fetchMetrics();
   }, [fetchMetrics]);
 
+  const logActivity = useCallback((type: string, text: string) => {
+    setActivityLog(prev => [{type, text, time: Date.now()}, ...prev].slice(0, 20));
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API}/api/graph/weeks`)
+      .then(r => r.json())
+      .then(d => { setWeekOptions(d); setWeek(d.current); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API}/api/metrics/history`)
+      .then(r => r.json())
+      .then(setHistoryData)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (week == null) return;
+    if (week === (weekOptions?.current ?? 8)) {
+      setGraphData(prev => prev);
+      return;
+    }
+    fetch(`${API}/api/graph?week=${week}`)
+      .then(r => r.json())
+      .then(d => setGraphData(d))
+      .catch(() => {});
+  }, [week, weekOptions?.current]);
+
+  const doImprove = useCallback(async () => {
+    setImproveLoading(true);
+    const oldRecall = metrics?.recall_precision;
+    try {
+      const r = await fetch(`${API}/api/improve`, { method: 'POST' });
+      const m = await r.json();
+      setMetrics(m);
+      if (oldRecall != null && m.recall_precision != null) {
+        const delta = ((m.recall_precision - oldRecall) * 100).toFixed(1);
+        setImproveDelta(delta.startsWith('-') ? delta : `+${delta}`);
+        setTimeout(() => setImproveDelta(null), 5000);
+      }
+      logActivity('improve', 'Memory strengthened');
+      fetch(`${API}/api/metrics/history`).then(r => r.json()).then(setHistoryData).catch(() => {});
+    } catch {}
+    setImproveLoading(false);
+  }, [metrics, logActivity]);
+
+  const doSubmitDecision = useCallback(async () => {
+    if (!addTitle.trim()) return;
+    setAddLoading(true);
+    setAddMsg(null);
+    try {
+      const r = await fetch(`${API}/api/webhook/remember`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          title: addTitle,
+          rationale: addRationale,
+          files: addFiles.split(',').map(s => s.trim()).filter(Boolean),
+          tags: addTags.split(',').map(s => s.trim()).filter(Boolean),
+          supersedes: addSupersedes.trim() || null,
+        }),
+      });
+      if (r.ok) {
+        setAddMsg('Decision remembered!');
+        setAddTitle(''); setAddRationale(''); setAddFiles(''); setAddTags(''); setAddSupersedes('');
+        logActivity('add', addTitle);
+        setTimeout(() => setAddMsg(null), 3000);
+      } else {
+        setAddMsg('Failed to remember. Check console.');
+      }
+    } catch { setAddMsg('Network error.'); }
+    setAddLoading(false);
+  }, [addTitle, addRationale, addFiles, addTags, addSupersedes, logActivity]);
+
   const doSearch = useCallback(async (q: string, mode: string) => {
     if (!q.trim()) { setSearchResults([]); return; }
     setIsSearching(true);
@@ -67,11 +157,12 @@ export default function GraphView() {
       const r = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}&mode=${mode}`);
       const d = await r.json();
       setSearchResults(d.results);
+      logActivity('search', `${q} (${mode})`);
     } catch {
       setSearchResults([]);
     }
     setIsSearching(false);
-  }, []);
+  }, [logActivity]);
 
   const modeRef = useRef(searchMode);
   modeRef.current = searchMode;
@@ -197,7 +288,7 @@ export default function GraphView() {
 
       {/* Metrics row */}
       {metrics && (
-        <div className="flex gap-4 text-xs text-gray-500 font-mono flex-wrap">
+        <div className="flex gap-4 text-xs text-gray-500 font-mono flex-wrap items-center">
           <span>{metrics.nodes} nodes</span>
           <span>{metrics.edges} edges</span>
           <span>recall: {(metrics.recall_precision * 100).toFixed(0)}%</span>
@@ -205,6 +296,16 @@ export default function GraphView() {
           {metrics.memory_composition && (Object.entries(metrics.memory_composition) as [string, number][]).map(([g, c]) => (
             <span key={g} className="capitalize">{g}: {c}</span>
           ))}
+          <button
+            onClick={doImprove}
+            disabled={improveLoading}
+            className="ml-auto px-3 py-1 rounded text-xs font-medium bg-indigo-700 hover:bg-indigo-600 disabled:bg-gray-700 disabled:text-gray-500 text-white transition-colors"
+          >
+            {improveLoading ? 'Improving...' : 'Strengthen Memory'}
+          </button>
+          {improveDelta && (
+            <span className="text-green-400 font-bold text-xs animate-pulse">{improveDelta}pp recall</span>
+          )}
         </div>
       )}
 
@@ -228,6 +329,22 @@ export default function GraphView() {
           size = relevance
         </span>
       </div>
+
+      {/* Week slider */}
+      {weekOptions && week != null && (
+        <div className="flex items-center gap-3 text-xs text-gray-500">
+          <span className="font-medium">Timeline</span>
+          <input
+            type="range"
+            min={Math.min(...weekOptions.weeks)}
+            max={weekOptions.current}
+            value={week}
+            onChange={e => setWeek(Number(e.target.value))}
+            className="flex-1 h-1.5 bg-gray-800 rounded-full appearance-none cursor-pointer accent-indigo-500"
+          />
+          <span className="font-mono w-16 text-right">Week {week}/{weekOptions.current}</span>
+        </div>
+      )}
 
       {/* Graph + SSE warning + Results */}
       <div className="flex gap-4">
@@ -301,42 +418,128 @@ export default function GraphView() {
           )}
         </div>
 
-        {/* Node detail panel */}
-        {selectedNode && (
-          <div className="w-72 shrink-0 border border-gray-700 rounded-lg bg-gray-900 p-4 h-fit max-h-[500px] overflow-y-auto">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-200 truncate">{selectedNode.name}</h3>
-              <button
-                onClick={() => setSelectedNode(null)}
-                className="text-gray-500 hover:text-gray-300 text-lg leading-none ml-2"
-              >
-                &times;
-              </button>
-            </div>
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: GROUP_COLORS[selectedNode.group] || '#9ca3af' }}></span>
-                <span className="text-gray-400 capitalize">{selectedNode.group || 'unknown'}</span>
+        {/* Right panel — control tabs or node detail */}
+        <div className="w-72 shrink-0 border border-gray-700 rounded-lg bg-gray-900 h-fit max-h-[500px] overflow-y-auto">
+          {selectedNode ? (
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-gray-200 truncate">{selectedNode.name}</h3>
+                <button
+                  onClick={() => setSelectedNode(null)}
+                  className="text-gray-500 hover:text-gray-300 text-lg leading-none ml-2"
+                >
+                  &times;
+                </button>
               </div>
-              <div className="text-gray-500 font-mono text-[10px] break-all">{selectedNode.id}</div>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: GROUP_COLORS[selectedNode.group] || '#9ca3af' }}></span>
+                  <span className="text-gray-400 capitalize">{selectedNode.group || 'unknown'}</span>
+                </div>
+                <div className="text-gray-500 font-mono text-[10px] break-all">{selectedNode.id}</div>
 
-              {nodeConnections.length > 0 && (
-                <div className="pt-2 border-t border-gray-800">
-                  <p className="text-gray-500 mb-1.5 font-medium">Connections ({nodeConnections.length})</p>
-                  <div className="space-y-1">
-                    {nodeConnections.map((c, i) => (
-                      <div key={i} className="flex items-center gap-1.5 text-gray-400">
-                        <span className="text-[10px] text-gray-600">{c.dir === 'out' ? '→' : '←'}</span>
-                        <span className="truncate">{c.node?.name || 'unknown'}</span>
-                        <span className="text-gray-600 ml-auto text-[10px]">{c.relation}</span>
-                      </div>
-                    ))}
+                {nodeConnections.length > 0 && (
+                  <div className="pt-2 border-t border-gray-800">
+                    <p className="text-gray-500 mb-1.5 font-medium">Connections ({nodeConnections.length})</p>
+                    <div className="space-y-1">
+                      {nodeConnections.map((c, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-gray-400">
+                          <span className="text-[10px] text-gray-600">{c.dir === 'out' ? '→' : '←'}</span>
+                          <span className="truncate">{c.node?.name || 'unknown'}</span>
+                          <span className="text-gray-600 ml-auto text-[10px]">{c.relation}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="p-3">
+              {/* Tabs */}
+              <div className="flex gap-1 mb-3 border-b border-gray-800 pb-2">
+                {(['metrics', 'add', 'activity'] as const).map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setActivePanel(tab)}
+                    className={`text-xs px-2 py-1 rounded capitalize transition-colors ${
+                      activePanel === tab
+                        ? 'bg-indigo-700 text-white'
+                        : 'text-gray-400 hover:text-gray-200'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              {/* Add tab */}
+              {activePanel === 'add' && (
+                <div className="space-y-2 text-xs">
+                  <input type="text" placeholder="Title" value={addTitle}
+                    onChange={e => setAddTitle(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-gray-500" />
+                  <textarea placeholder="Rationale" value={addRationale} rows={2}
+                    onChange={e => setAddRationale(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-gray-500 resize-none" />
+                  <input type="text" placeholder="Files (comma-separated)" value={addFiles}
+                    onChange={e => setAddFiles(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-gray-500" />
+                  <input type="text" placeholder="Tags (comma-separated)" value={addTags}
+                    onChange={e => setAddTags(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-gray-500" />
+                  <input type="text" placeholder="Supersedes (optional)" value={addSupersedes}
+                    onChange={e => setAddSupersedes(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-gray-500" />
+                  <button
+                    onClick={doSubmitDecision}
+                    disabled={addLoading || !addTitle.trim()}
+                    className="w-full px-3 py-1.5 rounded text-xs font-medium bg-indigo-700 hover:bg-indigo-600 disabled:bg-gray-700 disabled:text-gray-500 text-white transition-colors"
+                  >
+                    {addLoading ? 'Saving...' : 'Remember Decision'}
+                  </button>
+                  {addMsg && <p className="text-center text-gray-400">{addMsg}</p>}
+                </div>
+              )}
+
+              {/* Activity tab */}
+              {activePanel === 'activity' && (
+                <div className="space-y-1 text-xs max-h-64 overflow-y-auto">
+                  {activityLog.length === 0 ? (
+                    <p className="text-gray-600 text-center py-4">No activity yet.</p>
+                  ) : activityLog.map((a, i) => (
+                    <div key={i} className="flex items-start gap-2 text-gray-400 py-1.5 border-b border-gray-800/50 last:border-0">
+                      <span className={`shrink-0 text-[10px] font-medium px-1 rounded ${
+                        a.type === 'improve' ? 'bg-indigo-900/50 text-indigo-400' :
+                        a.type === 'add' ? 'bg-green-900/50 text-green-400' :
+                        'bg-gray-800 text-gray-500'
+                      }`}>{a.type}</span>
+                      <span className="truncate">{a.text}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Metrics tab */}
+              {activePanel === 'metrics' && (
+                <div className="space-y-2 text-xs">
+                  {historyData.length === 0 ? (
+                    <p className="text-gray-600 text-center py-4">No metrics history yet. Click "Strengthen Memory" to record snapshots.</p>
+                  ) : (
+                    <div className="space-y-1 max-h-64 overflow-y-auto">
+                      {historyData.map((h, i) => (
+                        <div key={i} className="flex justify-between text-gray-400 py-1 border-b border-gray-800/50 last:border-0">
+                          <span>{new Date(h.t * 1000).toLocaleTimeString()}</span>
+                          <span className="font-mono">{h.metrics.nodes} nodes / {h.metrics.edges} edges / {(h.metrics.recall_precision * 100).toFixed(0)}% recall</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

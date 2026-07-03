@@ -6,7 +6,7 @@ export default function Home() {
       <main className="max-w-6xl mx-auto flex flex-col gap-8">
         <header className="border-b border-gray-800 pb-4">
           <h1 className="text-3xl font-semibold tracking-tight">ProjectBrain <span className="text-gray-500">Memory Graph</span></h1>
-          <p className="text-sm text-gray-400 mt-1">Real-time visualization of your AI's context memory.</p>
+          <p className="text-sm text-gray-400 mt-1">A self-improving project memory that documents its own creation.</p>
         </header>
 
         <section className="flex flex-col gap-4">
