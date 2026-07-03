@@ -33,8 +33,14 @@ async def load_graph_from_cognee():
 
     graph_nodes = []
     for n in nodes:
-        props = n.properties or {}
-        name = props.get("name", n.id.split(":")[-1] if ":" in n.id else n.id)
+        # Handle both Node objects (local) and raw tuples (cloud)
+        if isinstance(n, tuple):
+            n_id, props = n[0], (n[1] if len(n) > 1 else {})
+        else:
+            n_id = n.id
+            props = n.properties or {}
+            
+        name = props.get("name", n_id.split(":")[-1] if ":" in n_id else n_id)
         ntype = props.get("type", "Node")
         group_map = {"Decision": "decision", "File": "file", "Incident": "incident", "Metric": "metric", "TextDocument": "file"}
         group = "decision"
@@ -42,11 +48,22 @@ async def load_graph_from_cognee():
             if k.lower() in ntype.lower():
                 group = v
                 break
-        graph_nodes.append({"id": n.id, "name": name, "group": group, "val": 20})
+        graph_nodes.append({"id": n_id, "name": name, "group": group, "val": 20})
 
     graph_links = []
     for e in edges:
-        graph_links.append({"source": e.source, "target": e.target, "name": e.relation})
+        # Handle both Edge objects and raw tuples
+        if isinstance(e, tuple):
+            source = e[0]
+            target = e[1]
+            relation = e[2] if len(e) > 2 else "RELATED_TO"
+            if isinstance(relation, dict):
+                relation = relation.get("relation_name", relation.get("type", "RELATED_TO"))
+        else:
+            source = e.source
+            target = e.target
+            relation = e.relation
+        graph_links.append({"source": source, "target": target, "name": relation})
 
     return {"nodes": graph_nodes, "links": graph_links}
 
