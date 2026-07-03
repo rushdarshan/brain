@@ -197,7 +197,10 @@ async def metrics():
 
 @app.post("/api/improve")
 async def improve():
-    await cognee.improve(dataset=DATASET, build_truth_subspace=True)
+    try:
+        await cognee.improve(dataset=DATASET, build_truth_subspace=True)
+    except Exception as e:
+        print(f"WARN: improve() failed: {e}")
     snapshot = await metrics()
     metrics_history.append({"t": time.time(), "metrics": snapshot})
     return snapshot
