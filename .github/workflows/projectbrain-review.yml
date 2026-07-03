@@ -22,7 +22,7 @@ jobs:
         env:
           COGNEE_API_KEY: ${{ secrets.COGNEE_API_KEY }}
         run: |
-          pip install git+https://github.com/topoteretes/cognee litellm
+          pip install git+https://github.com/topoteretes/cognee litellm fastembed python-dotenv
 
       - name: Generate PR Diff
         run: |
