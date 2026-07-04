@@ -8,6 +8,8 @@
 
 **Live demo:** [https://brain-production-3699.up.railway.app/](https://brain-production-3699.up.railway.app/)
 
+<video src="https://raw.githubusercontent.com/rushdarshan/brain/master/brag.mp4" autoplay muted loop playsinline width="100%"></video>
+
 Built for the **WeMakeDevs × Cognee "Hangover Part AI" Hackathon** (Jun 29 – Jul 5, 2026).
 
 ## Architecture
@@ -121,7 +123,13 @@ Connect to Cursor, Claude Code, or any MCP-compatible IDE:
 - **Groq (llama-3.3-70b-versatile)** — LLM for graph completion search
 - **GitHub Actions** — CI/CD reviewer agent
 
-## Demo (90-second script)
+## Submission demo
+
+[🎥 Watch the walkthrough video](https://youtube.com)
+
+<!-- Replace with your YouTube URL before submitting the form -->
+
+### Demo script
 
 1. **Meta framing** — "This is ProjectBrain. A self-improving project memory that documents its own creation." Graph shows 18 interconnected nodes.
 2. **Time slider** — Drag from week 8 to week 1. Watch the architecture evolve: MongoDB → Postgres migration, JWT → session auth, v1 → v2 API.
@@ -130,8 +138,6 @@ Connect to Cursor, Claude Code, or any MCP-compatible IDE:
 5. **Strengthen memory** — Click "Strengthen Memory". Watch the recall precision delta badge appear (e.g., "+5.2pp").
 6. **Metrics history** — Switch to the Metrics tab. See the snapshot history showing recall improvement over time.
 7. **Close** — "And the graph remembers building itself. Every PR, every decision, every superseded pattern is here. ProjectBrain doesn't just remember — it improves."
-
-[🎥 Demo video](https://youtube.com) (add link after recording)
 
 ## License
 
