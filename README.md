@@ -175,6 +175,8 @@ Connect to any MCP-compatible IDE:
 ### CI/CD Reviewer Agent
 `reviewer_agent.py` runs as a GitHub Action on every PR. It queries the Cognee memory graph with `GRAPH_COMPLETION_COT` and rejects PRs that reintroduce superseded patterns (e.g., MongoDB, JWT). Exit code 0 = approved, 1 = rejected.
 
+![Blocked PR: CI reviewer rejects MongoDB re-introduction](docs/images/blocked-pr-ci.png)
+
 ## Tech Stack
 
 - **Cognee 1.2.2** — graph-vector memory, 17 search modes, Kuzu + LanceDB embedded
