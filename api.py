@@ -54,8 +54,11 @@ async def notify_clients():
 
 @app.on_event("startup")
 async def startup():
-    await init_cognee()
     global STATE
+    try:
+        await init_cognee()
+    except Exception as e:
+        print(f"WARN: Cognee init failed: {e} — running with seed data only")
     STATE = await load_graph_from_cognee()
     print(f"Loaded {len(STATE['nodes'])} nodes, {len(STATE['links'])} links from Cognee")
     static_dir = os.path.join(os.path.dirname(__file__), "dashboard", "out")

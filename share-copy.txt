@@ -1,0 +1,1 @@
+ProjectBrain — Persistent Organizational Memory for AI Development. Built on Cognee Cloud. Cures context rot.

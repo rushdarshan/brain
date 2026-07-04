@@ -19,9 +19,11 @@ entries = [
 
 async def main():
     parser = argparse.ArgumentParser(description="Demo seeding")
+    parser.add_argument("--api", type=str, default=API, help="API base URL (default: http://127.0.0.1:8000)")
     parser.add_argument("--count", type=int, default=len(entries), help="Number of entries to seed")
     parser.add_argument("--delay", type=float, default=3.0, help="Seconds between entries")
     args = parser.parse_args()
+    api_url = args.api
 
     selected = entries[:args.count]
     print(f"Demo seeding {len(selected)} entries every {args.delay}s...")
@@ -30,7 +32,7 @@ async def main():
     async with httpx.AsyncClient() as client:
         for i, entry in enumerate(selected, 1):
             try:
-                r = await client.post(f"{API}/api/webhook/remember", json=entry, timeout=30.0)
+                r = await client.post(f"{api_url}/api/webhook/remember", json=entry, timeout=30.0)
                 if r.status_code == 200:
                     print(f"  [{i}/{len(selected)}] Added: {entry['title']}")
                 else:

@@ -1,5 +1,6 @@
 ---
 date: 2026-07-02
+updated: 2026-07-04
 topic: projectbrain-win
 focus: now can we win
 mode: repo-grounded
@@ -31,7 +32,7 @@ mode: repo-grounded
 **Downsides:** Requires maintaining one document with extraction markers. Minor friction vs totally separate docs.
 **Confidence:** 95%
 **Complexity:** Low
-**Status:** Unexplored
+**Status:** Unexplored — needs YouTube video + Google Form
 
 ### 2. One-Button Cloud Deploy
 **Description:** Deploy FastAPI (+ MCP server) to Railway and Next.js dashboard to Vercel. Live URL for judges instead of clone instructions. Setup = click + paste Cognee API key.
@@ -40,7 +41,7 @@ mode: repo-grounded
 **Downsides:** Railway/Vercel free tier limits. Cognee API key handling on a public URL differs from local.
 **Confidence:** 85%
 **Complexity:** Medium
-**Status:** Unexplored
+**Status:** ✅ DONE (Railway auto-deploy from master)
 
 ### 3. Graph Makeover: From Spiderweb to Signal
 **Description:** Current 164-node, 163-edge graph is near-complete connectivity — a hairball. Add: edge-weight threshold slider, click-to-expand node detail panel (memory provenance), colored node-type legends. Turns existing data from confusing to impressive.
@@ -49,7 +50,7 @@ mode: repo-grounded
 **Downsides:** Requires dashboard work. CSS + force graph params can be fiddly. Must consult Next.js docs per AGENTS.md.
 **Confidence:** 90%
 **Complexity:** Medium
-**Status:** Unexplored
+**Status:** ✅ DONE (time slider, tabs, metrics history, all deployed)
 
 ### 4. Self-Referential Meta-Narrative
 **Description:** Starting now, every decision about ProjectBrain in the final 2 days goes through `remember_decision`. The demo opens with the dashboard showing the hackathon's own decision graph. "We built a memory system. Then we used it to remember building itself."
@@ -58,7 +59,7 @@ mode: repo-grounded
 **Downsides:** Requires discipline to log decisions for 2 days. If you forget to remember, the graph has gaps.
 **Confidence:** 95%
 **Complexity:** Low (zero new code)
-**Status:** Unexplored
+**Status:** ⚠️ PARTIAL — dashboard subtitle reads "A self-improving project memory..."; not maximized
 
 ### 5. Live Graph Growth Demo Flow
 **Description:** Demo starts empty/minimal. As the presenter walks the narrative, decisions get added via MCP tools, and the force graph populates live via SSE. The graph growing IS the demo. Ends with 160+ nodes the judge watched appear.
@@ -67,7 +68,7 @@ mode: repo-grounded
 **Downsides:** Needs rehearsal. Screen capture must work. If SSE fails, graph doesn't grow.
 **Confidence:** 85%
 **Complexity:** Low (choreography, not code)
-**Status:** Unexplored
+**Status:** ⚠️ PARTIAL — SSE + timeline work; no choreographed demo flow scripted
 
 ### 6. Forget Safety Net
 **Description:** Soft-confirm on `forget()` showing impact ("This will erase {N} nodes..."). Dashboard undo toast. Prevents presenter from accidentally wiping the graph mid-demo.
@@ -76,7 +77,7 @@ mode: repo-grounded
 **Downsides:** None meaningful.
 **Confidence:** 99%
 **Complexity:** Low (5 lines)
-**Status:** Unexplored
+**Status:** ❌ NOT DONE — no soft-confirm, no undo toast
 
 ## Rejection Summary
 

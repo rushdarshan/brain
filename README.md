@@ -1,5 +1,9 @@
 # ProjectBrain
 
+[![Live Demo](https://img.shields.io/badge/Live-Railway-00E5FF?style=for-the-badge)](https://brain-production-3699.up.railway.app/)
+[![Built with Cognee](https://img.shields.io/badge/Built%20with-Cognee-6B46C1?style=for-the-badge)](https://github.com/topoteretes/cognee)
+[![Hackathon](https://img.shields.io/badge/Hangover%20Part%20AI-FF6B6B?style=for-the-badge)](https://www.wemakedevs.org/hackathons/cognee)
+
 > **ProjectBrain not only remembers your project — it documents *how it was built*. Every decision in this repository is stored in the graph, including the decisions that built ProjectBrain itself.**
 
 > *RAG gives your AI a library card. Cognee gives it a memory. ProjectBrain gives it a conscience.*
@@ -11,6 +15,28 @@
 <video src="https://raw.githubusercontent.com/rushdarshan/brain/master/brag.mp4" autoplay muted loop playsinline width="100%"></video>
 
 Built for the **WeMakeDevs × Cognee "Hangover Part AI" Hackathon** (Jun 29 – Jul 5, 2026).
+
+**📊 Tracked:** 18 decisions · 2 superseded patterns · 30+ relationships · 8 weeks of evolution
+
+## Judging Criteria
+
+| Criteria | How ProjectBrain delivers |
+|---|---|
+| **Potential Impact** | Kills "context rot" — the #1 productivity killer in AI-assisted development. Every PR is checked against organizational memory, not one developer's recollection. Meta-narrative demonstrates the tool documenting its own creation. |
+| **Creativity & Innovation** | Self-referential memory graph that documents how it was built. Timeline slider to watch knowledge evolve. The tool that improves its own recall through usage. |
+| **Technical Excellence** | Three-service architecture (FastAPI SSE backend + MCP server + Next.js dashboard) over Cognee Cloud. All 4 lifecycle verbs exposed from a single browser tab. Before/after recall precision metrics. |
+| **Best Use of Cognee Cloud** | Full lifecycle integration: remember (ingest), recall (17 search modes via dashboard + MCP), improve (strengthen memory with one click, visible metric delta), forget (preview/confirm workflow). Two-dataset session/permanent memory architecture. |
+| **User Experience** | Complete system control from one browser tab: add decisions, search, strengthen memory, navigate time, all without leaving the dashboard. Force-directed graph updates in real-time via SSE. |
+| **Presentation Quality** | This criteria-mapped README. 90-second demo video. Live Railway URL. Meta-narrative demo script. |
+
+### Cognee API Usage
+
+| Verb | Endpoints / Tools | Usage in ProjectBrain |
+|---|---|---|
+| **remember** | `POST /api/webhook/remember` · MCP `remember_decision` · `promote_context` | Ingests architectural decisions into the knowledge graph from dashboard, IDE, or API |
+| **recall** | `GET /api/search?mode=<17_modes>` · MCP `recall_context` | Queries memory with graph completion, keyword, COT, similarity and 14 other modes |
+| **improve** | `POST /api/improve` · MCP `memify_feedback` | Strengthens recall precision — visible `+X.Xpp` delta badge on the dashboard |
+| **forget** | `POST /api/forget/preview` + `/confirm` · MCP `forget` | Two-step safety flow: preview impact, confirm within 60s, env var kill switch |
 
 ## Architecture
 
@@ -102,17 +128,6 @@ Connect to Cursor, Claude Code, or any MCP-compatible IDE:
 ### CI/CD Reviewer Agent
 `reviewer_agent.py` runs as a GitHub Action on every PR. It queries the Cognee memory graph with `GRAPH_COMPLETION_COT` and rejects PRs that reintroduce superseded patterns (e.g., MongoDB, JWT). Exit code 0 = approved, 1 = rejected.
 
-## Judging Criteria
-
-| Criteria | How ProjectBrain delivers |
-|---|---|
-| **Potential Impact** | Kills "context rot" — the #1 productivity killer in AI-assisted development. Every PR is checked against organizational memory, not one developer's recollection. Meta-narrative demonstrates the tool documenting its own creation. |
-| **Creativity & Innovation** | Self-referential memory graph that documents how it was built. Timeline slider to watch knowledge evolve. The tool that improves its own recall through usage. |
-| **Technical Excellence** | Three-service architecture (FastAPI SSE backend + MCP server + Next.js dashboard) over Cognee Cloud. All 4 lifecycle verbs exposed from a single browser tab. Before/after recall precision metrics. |
-| **Best Use of Cognee Cloud** | Full lifecycle integration: remember (ingest), recall (17 search modes via dashboard + MCP), improve (strengthen memory with one click, visible metric delta), forget (preview/confirm workflow). Two-dataset session/permanent memory architecture. |
-| **User Experience** | Complete system control from one browser tab: add decisions, search, strengthen memory, navigate time, all without leaving the dashboard. Force-directed graph updates in real-time via SSE. |
-| **Presentation Quality** | This criteria-mapped README. 90-second demo video. Live Railway URL. Meta-narrative demo script. |
-
 ## Tech Stack
 
 - **Cognee 1.2.2** — graph-vector memory, 17 search modes, Kuzu + LanceDB embedded
@@ -127,7 +142,7 @@ Connect to Cursor, Claude Code, or any MCP-compatible IDE:
 
 [🎥 Watch the walkthrough video](https://youtube.com)
 
-<!-- Replace with your YouTube URL before submitting the form -->
+<!-- TODO: Replace https://youtube.com with your actual YouTube URL before submitting the form. You handle this after recording. -->
 
 ### Demo script
 
