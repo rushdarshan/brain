@@ -189,9 +189,7 @@ Connect to any MCP-compatible IDE:
 
 ## Submission demo
 
-[🎥 Watch the walkthrough video](https://youtube.com)
-
-<!-- TODO: Replace https://youtube.com with your actual YouTube URL before submitting the form. You handle this after recording. -->
+[🎥 Watch the walkthrough video](https://youtu.be/OdNlKLtUs8o)
 
 ### Demo script
 
