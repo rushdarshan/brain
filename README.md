@@ -14,7 +14,7 @@
 
 **Live demo:** [https://brain-production-3699.up.railway.app/](https://brain-production-3699.up.railway.app/)
 
-<video src="https://raw.githubusercontent.com/rushdarshan/brain/master/brag.mp4" autoplay muted loop playsinline width="100%"></video>
+<video src="https://github.com/user-attachments/assets/cdee4806-4571-4f5d-9655-e35e7a7577a8" autoplay muted loop playsinline width="100%"></video>
 
 Built for the **WeMakeDevs × Cognee "Hangover Part AI" Hackathon** (Jun 29 – Jul 5, 2026).
 
